@@ -20,7 +20,6 @@ from __future__ import annotations
 import csv
 import logging
 from datetime import datetime, timezone
-from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException

@@ -2,8 +2,6 @@
 API tests. Trains a tiny local model first (fast, no MLflow server needed)
 so the FastAPI app can start with model_loader's local-artifact fallback.
 """
-import json
-
 import pytest
 from fastapi.testclient import TestClient
 

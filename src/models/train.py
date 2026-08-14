@@ -91,7 +91,6 @@ def train(n_trials: int = 8, promote: bool = False, train_path=None, test_path=N
 
     best_score = -np.inf
     best_params = None
-    best_run_id = None
 
     parent_run_name = f"training-run-{int(time.time())}"
     with mlflow.start_run(experiment_id=exp_id, run_name=parent_run_name) as parent_run:
@@ -118,7 +117,6 @@ def train(n_trials: int = 8, promote: bool = False, train_path=None, test_path=N
                 if result.roc_auc > best_score:
                     best_score = result.roc_auc
                     best_params = params
-                    best_run_id = mlflow.active_run().info.run_id
 
         # Refit best params on the FULL training set, evaluate on held-out test set
         mlflow.log_params({f"best_{k}": v for k, v in best_params.items()})
