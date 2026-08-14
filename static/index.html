@@ -41,6 +41,10 @@
   .badge.medium { background: #fff4e0; color: #a15c00; }
   .badge.high { background: #fbe4e4; color: #c0392b; }
   .hint { font-size: 0.8rem; color: #777; margin-top: -8px; margin-bottom: 16px; }
+  #result button#explain-btn { margin-top: 10px; }
+  .explain-text { margin-top: 10px; font-size: 0.9rem; font-style: italic; opacity: 0.85; }
+  tr.explain-row td.explain-text { font-style: italic; opacity: 0.85; padding: 8px 10px; background: #fafafa; }
+  table.results button.explain-row-btn { padding: 4px 10px; font-size: 0.8rem; }
 </style>
 </head>
 <body>
@@ -165,12 +169,15 @@
     // ---- Single customer form ----
     const form = document.getElementById('churn-form');
     const result = document.getElementById('result');
+    let lastSinglePayload = null;
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(form);
       const payload = Object.fromEntries(fd.entries());
       ['senior_citizen', 'tenure_months', 'num_support_tickets'].forEach(k => payload[k] = parseInt(payload[k], 10));
       ['monthly_charges', 'total_charges', 'avg_monthly_usage_gb'].forEach(k => payload[k] = parseFloat(payload[k]));
+      lastSinglePayload = payload;
       result.style.display = 'block';
       result.className = '';
       result.innerHTML = 'Scoring...';
@@ -186,12 +193,36 @@
         result.innerHTML = `
           <h2>${(data.churn_probability * 100).toFixed(1)}% churn probability</h2>
           <p>Risk tier: <strong>${data.risk_tier}</strong> &middot; Predicted label: ${data.churn_prediction === 1 ? 'Will churn' : 'Will stay'} &middot; Model version: ${data.model_version}</p>
+          <button type="button" id="explain-btn">Explain this prediction (AI)</button>
+          <div id="explain-text" class="explain-text"></div>
         `;
+        document.getElementById('explain-btn').addEventListener('click', () => explainSingle(payload));
       } catch (err) {
         result.className = 'high';
         result.innerHTML = `<h2>Error</h2><pre>${err.message}</pre>`;
       }
     });
+
+    async function explainSingle(payload) {
+      const btn = document.getElementById('explain-btn');
+      const box = document.getElementById('explain-text');
+      btn.disabled = true;
+      box.textContent = 'Asking the AI to explain...';
+      try {
+        const resp = await fetch('/explain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const data = await resp.json();
+        box.textContent = data.explanation;
+      } catch (err) {
+        box.textContent = 'Could not fetch an explanation: ' + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
 
     // ---- Bulk CSV upload ----
     const REQUIRED_COLUMNS = [
@@ -210,6 +241,7 @@
     const bulkResult = document.getElementById('bulk-result');
     let parsedRows = null;
     let lastResults = null;
+    let lastCustomersById = {};
 
     document.getElementById('download-template').addEventListener('click', (e) => {
       e.preventDefault();
@@ -270,6 +302,8 @@
         if (!resp.ok) throw new Error(await resp.text());
         const data = await resp.json();
         lastResults = data.predictions;
+        lastCustomersById = {};
+        customers.forEach(c => { lastCustomersById[c.customer_id] = c; });
         renderResultsTable(lastResults);
         csvStatus.textContent = `Scored ${lastResults.length} customer(s).`;
         downloadBtn.style.display = 'inline-block';
@@ -292,20 +326,58 @@
 
     function renderResultsTable(predictions) {
       const rows = predictions.map(p => `
-        <tr>
+        <tr data-cid="${p.customer_id}">
           <td>${p.customer_id}</td>
           <td>${(p.churn_probability * 100).toFixed(1)}%</td>
           <td>${p.churn_prediction === 1 ? 'Will churn' : 'Will stay'}</td>
           <td><span class="badge ${p.risk_tier}">${p.risk_tier}</span></td>
+          <td><button type="button" class="explain-row-btn" data-cid="${p.customer_id}">Explain</button></td>
         </tr>
       `).join('');
       bulkResult.innerHTML = `
         <table class="results">
-          <thead><tr><th>Customer ID</th><th>Churn probability</th><th>Prediction</th><th>Risk tier</th></tr></thead>
+          <thead><tr><th>Customer ID</th><th>Churn probability</th><th>Prediction</th><th>Risk tier</th><th>AI explanation</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       `;
     }
+
+    bulkResult.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.explain-row-btn');
+      if (!btn) return;
+      const cid = btn.dataset.cid;
+      const customer = lastCustomersById[cid];
+      const row = btn.closest('tr');
+      if (!customer || !row) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Explaining...';
+      let explainRow = row.nextElementSibling;
+      if (!explainRow || !explainRow.classList.contains('explain-row')) {
+        explainRow = document.createElement('tr');
+        explainRow.className = 'explain-row';
+        explainRow.innerHTML = '<td colspan="5" class="explain-text"></td>';
+        row.after(explainRow);
+      }
+      const cell = explainRow.querySelector('td');
+      cell.textContent = 'Asking the AI to explain...';
+
+      try {
+        const resp = await fetch('/explain', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(customer)
+        });
+        if (!resp.ok) throw new Error(await resp.text());
+        const data = await resp.json();
+        cell.textContent = data.explanation;
+      } catch (err) {
+        cell.textContent = 'Could not fetch an explanation: ' + err.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Explain again';
+      }
+    });
 
     function downloadBlob(content, filename) {
       const blob = new Blob([content], { type: 'text/csv' });

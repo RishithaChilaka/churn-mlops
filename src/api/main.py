@@ -28,11 +28,13 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from src import config
+from src.api import llm_explain
 from src.api.model_loader import LoadedModel, load_model
 from src.api.schemas import (
     BatchPredictionRequest,
     BatchPredictionResponse,
     CustomerFeatures,
+    ExplainResponse,
     HealthResponse,
     ModelInfoResponse,
     PredictionResponse,
@@ -152,6 +154,27 @@ def predict_batch(request: BatchPredictionRequest) -> BatchPredictionResponse:
         raise HTTPException(status_code=503, detail="Model not loaded")
     df = pd.DataFrame([c.model_dump() for c in request.customers])
     return BatchPredictionResponse(predictions=_predict_df(df))
+
+
+@app.post("/explain", response_model=ExplainResponse)
+def explain(customer: CustomerFeatures) -> ExplainResponse:
+    """Scores a customer (same as /predict) and additionally asks an LLM to
+    explain the prediction in plain English. Degrades gracefully (still
+    returns the real prediction) if no ANTHROPIC_API_KEY is configured."""
+    if "model" not in _state:
+        raise HTTPException(status_code=503, detail="Model not loaded")
+    df = pd.DataFrame([customer.model_dump()])
+    prediction = _predict_df(df)[0]
+    explanation_text = llm_explain.explain_prediction(
+        customer=customer.model_dump(),
+        churn_probability=prediction.churn_probability,
+        risk_tier=prediction.risk_tier,
+    )
+    return ExplainResponse(
+        **prediction.model_dump(),
+        explanation=explanation_text,
+        llm_configured=llm_explain.is_configured(),
+    )
 
 
 @app.get("/metrics")

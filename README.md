@@ -6,7 +6,27 @@ automated evaluation → REST API deployment → monitoring → data-drift
 detection → automated retraining.
 
 Stack: **Python, XGBoost, MLflow, FastAPI, Docker, AWS (ECS/ECR/S3 via
-Terraform), GitHub Actions, Evidently.**
+Terraform), GitHub Actions, Evidently, Anthropic Claude, Railway.**
+
+**Live demo:** https://churn-mlops-production-2c49.up.railway.app/
+
+## Self-retraining and AI explanations
+
+Two capabilities close the loop between "trained once" and "a real system":
+
+- **Self-retraining.** `.github/workflows/retrain.yml` runs weekly (and on
+  manual trigger) and does the full loop unattended: check for data drift
+  with Evidently, retrain against the quality gate if drift is significant,
+  and — if the retrained model actually improved — commit the new model
+  artifact back to the repo. That push auto-triggers a Railway redeploy, so
+  the live demo picks up the freshly retrained model with zero manual steps.
+- **AI-generated explanations.** Every prediction can be explained in plain
+  English via the `/explain` endpoint (and the "Explain this prediction"
+  button in the UI), which asks Claude to summarize *why* the model likely
+  scored a customer the way it did, referencing their actual account details.
+  This requires an `ANTHROPIC_API_KEY` environment variable — without it, the
+  app still works normally and returns a friendly "AI explanations not
+  configured" message instead of breaking.
 
 ## Architecture
 

@@ -56,3 +56,13 @@ class ModelInfoResponse(BaseModel):
     model_version: str
     model_source: str
     metrics: dict
+
+
+class ExplainResponse(BaseModel):
+    customer_id: str
+    churn_probability: float
+    churn_prediction: int
+    risk_tier: str
+    model_version: str
+    explanation: str
+    llm_configured: bool

@@ -72,3 +72,14 @@ def test_model_info(client):
     resp = client.get("/model-info")
     assert resp.status_code == 200
     assert "metrics" in resp.json()
+
+
+def test_explain_degrades_gracefully_without_api_key(client, monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    resp = client.post("/explain", json=SAMPLE_CUSTOMER)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["llm_configured"] is False
+    assert "explanation" in body and len(body["explanation"]) > 0
+    # still returns the real prediction alongside the fallback message
+    assert 0.0 <= body["churn_probability"] <= 1.0

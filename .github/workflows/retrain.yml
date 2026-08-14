@@ -1,5 +1,10 @@
-name: Scheduled Monitoring & Retraining
+name: Scheduled Monitoring & Self-Retraining
 
+# This is the "self-training" loop: on a schedule, check for data drift,
+# retrain + re-evaluate against the quality gate if warranted, and - if the
+# retrained model is actually different - commit the new model artifact back
+# to the repo. That push triggers Railway's auto-deploy, so the live demo
+# picks up the freshly retrained model with no manual steps.
 on:
   schedule:
     - cron: "0 6 * * 1" # every Monday 06:00 UTC
@@ -10,11 +15,16 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write
+
 jobs:
   monitor-and-retrain:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-python@v5
         with:
@@ -41,3 +51,16 @@ jobs:
         with:
           name: monitoring-reports
           path: reports/drift/
+
+      - name: Commit + push retrained model (triggers Railway auto-deploy)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- models/; then
+            echo "No model changes to commit - retraining was skipped or produced an identical model."
+          else
+            git add models/
+            git commit -m "chore: auto-retrain churn model [scheduled]"
+            git push
+            echo "Pushed retrained model - Railway will auto-deploy the update."
+          fi

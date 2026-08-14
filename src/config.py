@@ -7,9 +7,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 # --- MLflow ---
-MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", f"file://{ROOT / 'mlruns'}")
-MLFLOW_EXPERIMENT_NAME = os.environ.get("MLFLOW_EXPERIMENT_NAME", "churn-prediction")
-MODEL_REGISTRY_NAME = os.environ.get("MODEL_REGISTRY_NAME", "churn-xgboost")
+# Use `or` (not dict.get's default) so an unset/empty-string CI secret falls
+# back to the local file store instead of passing "" to MLflow.
+MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI") or f"file://{ROOT / 'mlruns'}"
+MLFLOW_EXPERIMENT_NAME = os.environ.get("MLFLOW_EXPERIMENT_NAME") or "churn-prediction"
+MODEL_REGISTRY_NAME = os.environ.get("MODEL_REGISTRY_NAME") or "churn-xgboost"
 
 # --- Data ---
 TRAIN_PATH = ROOT / "data" / "reference" / "train.csv"
