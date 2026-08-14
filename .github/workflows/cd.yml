@@ -1,13 +1,11 @@
-name: CD - Build & Deploy API
+name: CD - Build & Deploy API (AWS)
 
+# Manual-only: this workflow deploys to AWS ECR/ECS and requires
+# AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY repo secrets to be configured
+# (see infra/README.md). It's not wired to run automatically on push because
+# this project's live demo is deployed via Railway instead - trigger this
+# manually from the Actions tab only if/when you set up the AWS path.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "src/api/**"
-      - "src/features/**"
-      - "requirements.txt"
-      - "docker/Dockerfile.api"
   workflow_dispatch: {}
 
 env:
