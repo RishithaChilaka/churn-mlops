@@ -1,0 +1,22 @@
+{
+  "run_id": "b609f5743f5c4fd1a910d8558f1d4a9c",
+  "best_params": {
+    "subsample": 0.7,
+    "n_estimators": 400,
+    "min_child_weight": 5,
+    "max_depth": 4,
+    "learning_rate": 0.01,
+    "colsample_bytree": 0.8
+  },
+  "roc_auc": 0.7626315633869443,
+  "f1": 0.6182795698924731,
+  "precision": 0.673828125,
+  "recall": 0.5711920529801324,
+  "accuracy": 0.716,
+  "tn": 729,
+  "fp": 167,
+  "fn": 259,
+  "tp": 345,
+  "passed_gate": true,
+  "gate_reason": "PASS: roc_auc=0.7626 >= 0.75, f1=0.6183 >= 0.55"
+}

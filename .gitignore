@@ -8,8 +8,6 @@ data/reference/train_merged.csv
 logs/
 reports/drift/*.html
 reports/drift/*.json
-models/*.joblib
-models/*.json
 .pytest_cache/
 .ruff_cache/
 *.egg-info/
