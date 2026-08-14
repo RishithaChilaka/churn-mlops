@@ -75,6 +75,7 @@ def test_model_info(client):
 
 
 def test_explain_degrades_gracefully_without_api_key(client, monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     resp = client.post("/explain", json=SAMPLE_CUSTOMER)
     assert resp.status_code == 200

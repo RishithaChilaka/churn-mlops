@@ -22,11 +22,12 @@ Two capabilities close the loop between "trained once" and "a real system":
   the live demo picks up the freshly retrained model with zero manual steps.
 - **AI-generated explanations.** Every prediction can be explained in plain
   English via the `/explain` endpoint (and the "Explain this prediction"
-  button in the UI), which asks Claude to summarize *why* the model likely
+  button in the UI), which asks an LLM to summarize *why* the model likely
   scored a customer the way it did, referencing their actual account details.
-  This requires an `ANTHROPIC_API_KEY` environment variable — without it, the
-  app still works normally and returns a friendly "AI explanations not
-  configured" message instead of breaking.
+  Configure it with a `GROQ_API_KEY` (Groq's free tier, no card required -
+  recommended) or an `ANTHROPIC_API_KEY` (paid, used if set instead). Without
+  either, the app still works normally and returns a friendly "AI
+  explanations not configured" message instead of breaking.
 
 ## Architecture
 
