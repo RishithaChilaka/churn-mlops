@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  mlflow:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.mlflow
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow_data:/mlflow
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+
+  retrain:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.train
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - mlflow
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./models:/app/models
+    profiles:
+      - retrain # run on demand: docker compose --profile retrain run retrain
+
+volumes:
+  mlflow_data:

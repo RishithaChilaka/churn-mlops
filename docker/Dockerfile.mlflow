@@ -1,0 +1,15 @@
+# MLflow tracking server + model registry (backed by local SQLite + filesystem
+# artifact store for the demo; swap for RDS/S3 in real AWS deployment - see infra/)
+FROM python:3.11-slim
+
+WORKDIR /mlflow
+
+RUN pip install --no-cache-dir mlflow==2.13.0
+
+EXPOSE 5000
+
+CMD ["mlflow", "server", \
+     "--backend-store-uri", "sqlite:///mlflow.db", \
+     "--default-artifact-root", "/mlflow/artifacts", \
+     "--host", "0.0.0.0", \
+     "--port", "5000"]
